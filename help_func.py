@@ -1,5 +1,4 @@
 from qutip import *
-from qutip.piqs import *
 import numpy as np
 
 def gauss(x, x_0, sigma):
