@@ -3,7 +3,7 @@ import numpy as np
 def unit_time(gk, N_spin, kappa):
     Omega_0 = 2*gk
     lim = Omega_0*np.sqrt(N_spin)
-    if kappa < lim:
+    if kappa < 1.5*lim:
         print("Warning: not in the overdamped regime")
     Gc = Omega_0**2/kappa
     Tr = 1/Gc/N_spin

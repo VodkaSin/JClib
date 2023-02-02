@@ -67,15 +67,27 @@ class sys:
 
 if __name__ == "__main__":
     t = np.linspace(0,2,1000)
-    p1 = sys( 5, 20, 0, 0, 1.6, np.pi, 0)
-    p2 = sys( 5, 20, 0, 0, 1.6, 0.8*np.pi, 0)
-    p3 = sys( 5, 20, 0, 0, 1.6, 0.9*np.pi, np.pi/2)
-    p_out1 = p1.run_mesolve(t, [np.sqrt(10)*p1.a_tot], [p1.jz_tot, p1.ada_tot])
-    p_out2 = p2.run_mesolve(t, [np.sqrt(10)*p2.a_tot], [p2.jz_tot, p2.ada_tot])
-    p_out3 = p3.run_mesolve(t, [np.sqrt(10)*p3.a_tot], [p3.jz_tot, p3.ada_tot])
-    plt.plot(t, p_out1.expect[0], label="1,0")
-    plt.plot(t, p_out2.expect[0], label="0.8,0")
-    plt.plot(t, p_out3.expect[0], label="0.9,0.5")
+    theta1 = np.pi/2
+    theta2 = np.pi/4
+    phi1 = 0
+    phi2 = np.pi/2
+    p1 = sys( 5, 20, 0, 0, 1.6, theta1, phi1)
+    p2 = sys( 5, 20, 0, 0, 1.6, theta1, phi2)
+    p3 = sys( 5, 20, 0, 0, 1.6, theta2, phi2)
+    p_out1 = p1.run_mesolve(t, [np.sqrt(10)*p1.a_tot], [p1.jm_tot, p1.jpjm_tot])
+    p_out2 = p2.run_mesolve(t, [np.sqrt(10)*p2.a_tot], [p2.jm_tot, p2.jpjm_tot])
+    p_out3 = p3.run_mesolve(t, [np.sqrt(10)*p3.a_tot], [p3.jm_tot, p3.jpjm_tot])
+
+    fig, ax = plt.subplots(2,1)
+
+    ax[0].plot(t, p_out1.expect[0], label='')
+    ax[0].plot(t, p_out2.expect[0], label="0.8,0")
+    ax[0].plot(t, p_out3.expect[0], label="0.9,0.5")
+
+    ax[1].plot(t, p_out1.expect[1], label="1,0")
+    ax[1].plot(t, p_out2.expect[1], label="0.8,0")
+    ax[1].plot(t, p_out3.expect[1], label="0.9,0.5")
+    
     plt.legend()
     plt.show()
     
