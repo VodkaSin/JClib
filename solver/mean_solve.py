@@ -43,7 +43,7 @@ class sys:
         # Initialization of operators
     ###########################################################################################################################       
         
-        self.a = 0+0j
+        self.a = 0.+0j
         self.da = 0.
         self.ada = 0.
         self.dada = 0.
@@ -266,6 +266,8 @@ class sys:
     ###########################################################################################################################
         
     def update(self):
+        self.intervals = 1000
+        self.dt = 0.001
         n_sz = np.zeros((self.intervals,self.k), dtype=np.cfloat)
         n_ada = np.zeros((self.intervals), dtype=np.cfloat)
         start = time.time()

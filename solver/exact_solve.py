@@ -47,11 +47,12 @@ class sys:
     def __str__(self):
         return f'Exact solver for {self.N_spin} spins, Fock states = {self.N_cav}'
     
-    def run_mesolve(self, tlist, c_ops, e_ops):
+    def run_mesolve(self, tlist, c_ops, e_ops, silent=False):
         start = time.time()
         out = qutip.mesolve(self.H, self.psi0, tlist, c_ops = c_ops, e_ops = e_ops)
         end = time.time()
-        print(f'Run time: {end-start}s')
+        if silent == False:
+            print(f'Runtime: {end-start}s')
         return out
 
 if __name__ == "__main__":
