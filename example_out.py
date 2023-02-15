@@ -10,21 +10,26 @@ import qutip
 t = np.linspace(0,2,1000)
 # se = exact.sys( 1, 20, 0, 0, 1.6)
 kappa = 40
-N_spin = 3
+N_spin = 10
 # fig, ax = plt.subplots(3, 1, sharex=True)
 # ax[0].set(ylabel = "jz")
 # ax[1].set(ylabel = 'jpjm')
 # ax[2].set(xlabel = "time (us)",ylabel = "ada")
-
-# sp1 = piqs.sys(N_spin, 30, 0, 0, 1.6, np.pi, 0)
-# sp2 = piqs.sys(N_spin, 30, 0, 0, 1.6, np.pi/2, 0)
+phi1 = np.pi/3
+phi2 = np.pi/4
+sp1 = piqs.sys(N_spin, 30, 0, 0, 1.6, phi1, 0)
+sp2 = piqs.sys(N_spin, 30, 0, 0, 1.6, phi2, 0)
 # sp3 = piqs.sys(N_spin, 30, 0, 0, 1.6, 0, 0)
-# piqs_out1 = sp1.run_mesolve(t,[np.sqrt(kappa)*sp1.a_tot], [sp1.jz_tot, sp1.ada_tot, sp1.jpjm_tot, sp1.jm_tot])
-# piqs_out2 = sp2.run_mesolve(t,[np.sqrt(kappa)*sp2.a_tot], [sp2.jz_tot, sp2.ada_tot, sp2.jpjm_tot, sp2.jm_tot])
+piqs_out1 = sp1.run_mesolve(t,[np.sqrt(kappa)*sp1.a_tot], [sp1.jm_tot*sp1.jz_tot, sp1.jm_tot, sp1.jz_tot])
+piqs_out2 = sp2.run_mesolve(t,[np.sqrt(kappa)*sp2.a_tot], [sp2.jm_tot*sp2.jz_tot, sp2.jm_tot, sp2.jz_tot])
 # piqs_out3 = sp3.run_mesolve(t,[np.sqrt(kappa)*sp3.a_tot], [sp3.jz_tot, sp3.ada_tot, sp3.jpjm_tot, sp3.jm_tot])
-sysmf = mf.sys(np.asarray([10]), np.asarray([0]), 0, 1.6, 16, 0)
-out = sysmf.update()
-plt.plot(np.real(out[0]))
+# sysmf = mf.sys(np.asarray([10]), np.asarray([0]), 0, 1.6, 16, 0)
+# out = sysmf.update()
+plt.plot(t,piqs_out1.expect[0], label=f'jmjz 1 {phi1}')
+plt.plot(t,piqs_out1.expect[1]*piqs_out1.expect[2], label=f'jm*jz 1 {phi1}')
+plt.plot(t,piqs_out2.expect[0], label=f'jmjz 2 {phi2}')
+plt.plot(t,piqs_out2.expect[1]*piqs_out2.expect[2], label=f'jm*jz 2 {phi2}')
+plt.legend()
 plt.show()
 
 # for N_spin in [8]:
