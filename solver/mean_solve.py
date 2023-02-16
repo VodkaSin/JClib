@@ -13,11 +13,11 @@ import matplotlib.pyplot as plt
 
 class sys:
     
-    def __init__(self, N_class, delta_a, delta_c, gk, kappa, gamma, E_spin=True, F=0):
+    def __init__(self, pop_inclass, delta_a, delta_c, gk, kappa, gamma, E_spin=True, F=0):
         
       ###########################################################################################################################      
       # Class for systems to be solved with mean-field equations
-      # N_class: array storing the number of spins in different classes
+      # pop_inclass: array storing the number of spins in different classes
       # delta_a: array of spin detuning of each class
       # delta_c: detuning between field and pump
       # kappa: cavity linewidth
@@ -25,8 +25,8 @@ class sys:
       # E_spin: Boolean, true if all spins started excited
       ###########################################################################################################################
         
-        self.N_class = N_class
-        self.k = len(N_class)
+        self.pop_inclass = pop_inclass
+        self.k = len(pop_inclass)
         self.delta_c = delta_c
         self.delta_a = delta_a
         self.gk = gk
@@ -54,7 +54,7 @@ class sys:
         self.sp = np.zeros(self.k, dtype=np.cfloat)
         self.dsp = np.zeros(self.k, dtype=np.cfloat) 
         if E_spin:
-            self.sz = np.ones(self.k, dtype=np.cfloat) # Added self.N_class*
+            self.sz = np.ones(self.k, dtype=np.cfloat) # Added self.pop_inclass*
         else:
             self.sz = -np.ones(self.k, dtype=np.cfloat)
         self.dsz = np.zeros(self.k, dtype=np.cfloat)
@@ -103,22 +103,22 @@ class sys:
     
     
     def cal_da(self):
-        return (-1j * self.w_cav * self.a - 1j * self.gk * sum(self.N_class * self.sm) - 1j * self.F_t) 
+        return (-1j * self.w_cav * self.a - 1j * self.gk * sum(self.pop_inclass * self.sm) - 1j * self.F_t) 
     
     def cal_dda(self):
-        return (-1j * self.w_cav * self.da - 1j * self.gk * sum(self.N_class * self.dsm))
+        return (-1j * self.w_cav * self.da - 1j * self.gk * sum(self.pop_inclass * self.dsm))
 
     def cal_da2(self):
-        return (-2j * self.w_cav * self.a2 - 2j * self.gk * np.sum(self.N_class * self.a_sm) - 2j * self.F_t * self.a) 
+        return (-2j * self.w_cav * self.a2 - 2j * self.gk * np.sum(self.pop_inclass * self.a_sm) - 2j * self.F_t * self.a) 
     
     def cal_dda2(self):
-        return (-2j * self.w_cav * self.da2 - 2j * self.gk * np.sum(self.N_class * self.da_sm) - 2j * self.F_t * self.da)
+        return (-2j * self.w_cav * self.da2 - 2j * self.gk * np.sum(self.pop_inclass * self.da_sm) - 2j * self.F_t * self.da)
 
     def cal_dada(self):
-        return (-2 * self.gk * np.sum(self.N_class * np.imag(self.a_sp)) - 2 * self.F_t * np.imag(self.a) - self.kappa * self.ada)
+        return (-2 * self.gk * np.sum(self.pop_inclass * np.imag(self.a_sp)) - 2 * self.F_t * np.imag(self.a) - self.kappa * self.ada)
     
     def cal_ddada(self):
-        return (-2 * self.gk * np.sum(self.N_class * np.imag(self.da_sp)) - 2 * self.F_t * np.imag(self.da) - self.kappa * self.ada)
+        return (-2 * self.gk * np.sum(self.pop_inclass * np.imag(self.da_sp)) - 2 * self.F_t * np.imag(self.da) - self.kappa * self.ada)
     
     ###########################################################################################################################
     ## Same class s expectation values
@@ -132,20 +132,20 @@ class sys:
     
 
     def cal_da_sz(self):
-        return (-1j * self.w_cav * self.a_sz - 1j * self.gk * (-self.sm + (self.N_class-1) * self.sm_sz_s) - \
+        return (-1j * self.w_cav * self.a_sz - 1j * self.gk * (-self.sm + (self.pop_inclass-1) * self.sm_sz_s) - \
                 2j * self.gk * ((self.a2 * self.sp + 2 * self.a * self.a_sp - 2 * self.a**2 * self.sp) - (np.conjugate(self.a) * self.a_sm + self.a * np.conjugate(self.a_sp) +\
                  self.ada * self.sm - 2*np.abs(self.a)**2 * self.sm)) - self.gamma * (self.a + self.a_sz) - 1j * self.F_t * self.sz - \
-                1j * self.gk * np.sum(self.sz_sm_d * self.N_class[..., None], axis=0)) # Assuming that N is a row vector of size k
+                1j * self.gk * np.sum(self.sz_sm_d * self.pop_inclass[..., None], axis=0)) # Assuming that N is a row vector of size k
 
 
     def cal_da_sm(self):
-        return (-1j * (self.w_spin + self.w_cav) * self.a_sm - 1j * self.gk * ((self.N_class-1) * self.sm_sm_s - 2 * self.a_sz * self.a - self.a2 * self.sz\
-                + 2 * self.a**2 * self.sz) - 1j * self.F_t * self.sm - 1j * self.gk * np.sum(self.sm_sm_d * self.N_class[..., None], axis=0))
+        return (-1j * (self.w_spin + self.w_cav) * self.a_sm - 1j * self.gk * ((self.pop_inclass-1) * self.sm_sm_s - 2 * self.a_sz * self.a - self.a2 * self.sz\
+                + 2 * self.a**2 * self.sz) - 1j * self.F_t * self.sm - 1j * self.gk * np.sum(self.sm_sm_d * self.pop_inclass[..., None], axis=0))
     
     
     def cal_da_sp(self):
-        return (1j * (np.conj(self.w_spin) - self.w_cav) * self.a_sp - .5j * self.gk * (1-self.sz) - 1j * self.gk * (self.N_class-1) * self.sm_sp_s\
-                -1j * self.gk * np.sum(self.sp_sm_d * self.N_class[..., None], axis=0) - 1j * self.gk * ((1+self.ada) * self.sz + 2 * np.real(self.a * np.conjugate(self.a_sz)) - 2 * np.abs(self.a)**2 * self.sz)\
+        return (1j * (np.conj(self.w_spin) - self.w_cav) * self.a_sp - .5j * self.gk * (1-self.sz) - 1j * self.gk * (self.pop_inclass-1) * self.sm_sp_s\
+                -1j * self.gk * np.sum(self.sp_sm_d * self.pop_inclass[..., None], axis=0) - 1j * self.gk * ((1+self.ada) * self.sz + 2 * np.real(self.a * np.conjugate(self.a_sz)) - 2 * np.abs(self.a)**2 * self.sz)\
                 -1j * self.F_t * self.sp)
 
 
@@ -296,8 +296,8 @@ class sys:
                 self.dsp_sm_d = self.cal_dsp_sm_d() * self.dt
             
     
-            self.a = self.bound_scalar(sum(self.N_class), self.a + self.da, self.a)
-            self.ada = self.bound_scalar(sum(self.N_class), self.ada + self.dada, self.ada)
+            self.a = self.bound_scalar(sum(self.pop_inclass), self.a + self.da, self.a)
+            self.ada = self.bound_scalar(sum(self.pop_inclass), self.ada + self.dada, self.ada)
             if self.ada < 0:
                 self.ada = 0
             self.a2 = self.bound_scalar(self.a**2, self.a2 + self.da2 , self.a2)
