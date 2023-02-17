@@ -1,5 +1,5 @@
 import cupy as cp
-import numpy as cp
+import numpy as np
 
 class sys:
     def __init__(self, pop_inclass, delta_a, delta_c, gk, theta, phi, cav_decay, spin_decay, spin_dephase):
@@ -190,8 +190,31 @@ class sys:
         self.sz_sz += self.cal_dsz_sz() * dt
         self.sm_sm += self.cal_dsm_sm() * dt
         self.sp_sm += self.cal_dsp_sm() * dt
+    
+    def solve_constant(self, tlist, F_t):
+        """
+        Returns 
+        tlist: np.array
+            All the time steps with constant dt
+        F_t: np.array
+            Cavity pump amplitude with respect to time
+        """
+        intervals = np.size(tlist)
+        dt = tlist[-1]/intervals
+        e_ada = cp.zeros(intervals)
+        e_sz = cp.zeros(self.k, intervals)
+        e_sp_sm = cp.zeros(self.k, intervals)
 
-    def solve(self, endtime, F, min_dt=1e-6, mode="constant"):
+        for t in tlist:
+            self.update(F_t[t], dt)
+            e_ada[t] = self.ada
+            e_sz[t] = self.sz
+            e_sp_sm[t] = cp.diagonal(self.sp_sm)
+            
+        return [cp.numpy(e_ada), cp.numpy(e_sz), cp.numpy(e_sp_sm)]
+
+
+    def solve_adapt(self, endtime, F, min_dt=1e-6):
         """
         tlist: np.array
            (0, endtime, default intervals)
