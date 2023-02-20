@@ -62,18 +62,18 @@ class sys:
         self.sm = G*E*cp.ones(self.k)
         self.sp = cp.conjugate(E)*G*cp.ones(self.k)
 
-        self.a_sz = cp.zeros(self.k, dtype=cp.cfloat)
-        self.a_sm = cp.zeros(self.k, dtype=cp.cfloat)
-        self.a_sp = cp.zeros(self.k, dtype=cp.cfloat)
+        self.a_sz = cp.zeros(self.k, dtype=np.cfloat)
+        self.a_sm = cp.zeros(self.k, dtype=np.cfloat)
+        self.a_sp = cp.zeros(self.k, dtype=np.cfloat)
 
         self.sz_sm = 0.25*cp.sin(2*self.theta)*cp.exp(-1j*self.phi)\
-                     * cp.ones((self.k, self.k), dtype=cp.cfloat)
+                     * cp.ones((self.k, self.k), dtype=np.cfloat)
         self.sz_sz = cp.cos(self.theta)**2\
-                     * cp.ones((self.k, self.k), dtype=cp.cfloat)
+                     * cp.ones((self.k, self.k), dtype=np.cfloat)
         self.sm_sm = 0.25*cp.sin(self.theta)**2\
-                     * cp.ones((self.k, self.k), dtype=cp.cfloat)
+                     * cp.ones((self.k, self.k), dtype=np.cfloat)
         self.sp_sm = G**2* cp.abs(E)**2\
-                     * cp.ones((self.k, self.k), dtype=cp.cfloat)
+                     * cp.ones((self.k, self.k), dtype=np.cfloat)
     
     """
     Functions to calculate mean-field increments at each time step
@@ -109,7 +109,7 @@ class sys:
                  + 2 * self.a * self.a_sp - 2 * self.a**2 * self.sp)
                  - (self.ad * self.a_sm + self.a * cp.conjugate(self.a_sp)
                  + self.ada * self.sm - 2 * cp.abs(self.a)**2 * self.sm))
-                 - self.gamma * (self.a + self.a_sz) - 1j * self.F_t * self.sz
+                 - self.gamma * (self.a + self.a_sz) - 1j * self.F * self.sz
                  - 1j * self.gk * cp.sum(self.sz_sm * self.pop_inclass[..., None], axis=0))
     
     def cal_da_sm(self):
@@ -143,7 +143,7 @@ class sys:
                  + (self.a_sp.T * self.sz + self.a_sz * cp.vstack(self.sp)
                  + self.a * cp.conjugate(self.sz_sm) 
                  - 2 * self.a * cp.vstack(self.sp) * self.sz))
-                 + self.gamma * (cp.tile(self.sz).reshape(self.k, self.k).T
+                 + self.gamma * (cp.tile(self.sz, self.k).reshape(self.k, self.k).T
                  + self.sz_sz))
 
     def cal_dsz_sm(self):
@@ -157,7 +157,7 @@ class sys:
                  - (cp.conjugate(self.a_sp) * cp.vstack(self.sm) 
                  + cp.conjugate(self.a_sp).T * self.sm + self.ad * self.sm_sm
                  - 2 * self.ad * self.sm * cp.vstack(self.sm)))
-                 - self.gamma * cp.tile(self.sm).reshape(self.k, self.k).T)
+                 - self.gamma * cp.tile(self.sm, self.k).reshape(self.k, self.k).T)
 
     def cal_dsp_sm(self):
         return (-1j * (self.w_spin_r - self.w_spin_r.T) * self.sp_sm
@@ -191,8 +191,8 @@ class sys:
         self.sz_sz += self.cal_dsz_sz() * dt
         self.sm_sm += self.cal_dsm_sm() * dt
         self.sp_sm += self.cal_dsp_sm() * dt
-    
-    def solve_constant(self, tlist, F_t):
+
+    def solve_constant(self, tlist):
         """
         Returns 
         tlist: np.array
@@ -201,18 +201,19 @@ class sys:
             Cavity pump amplitude with respect to time
         """
         intervals = np.size(tlist)
+        F_t = cp.zeros(intervals)
         dt = tlist[-1]/intervals
         e_ada = cp.zeros(intervals)
-        e_sz = cp.zeros(self.k, intervals)
-        e_sp_sm = cp.zeros(self.k, intervals)
+        e_sz = cp.zeros((intervals, self.k))
+        e_sp_sm = cp.zeros((intervals, self.k))
 
-        for t in tlist:
+        for t in range(intervals):
             self.update(F_t[t], dt)
             e_ada[t] = self.ada
             e_sz[t] = self.sz
             e_sp_sm[t] = cp.diagonal(self.sp_sm)
 
-        return [cp.numpy(e_ada), cp.numpy(e_sz), cp.numpy(e_sp_sm)]
+        return [cp.asnumpy(e_ada), cp.asnumpy(e_sz), cp.asnumpy(e_sp_sm)]
 
 
     def solve_adapt(self, endtime, F, min_dt=1e-6):
@@ -239,20 +240,32 @@ class sys:
             time_now += dt
 
 if __name__ == "__main__":
-    tlist = np.linspace(0,2,1e3)
-    F_t = cp.zeros(1e3)
-    pop_inclass = cp.asarray([10,10,10])
-    delta_a = cp.asarray([0,10,100])
+    pop_inclass = cp.asarray([100,100])
+    delta_a = cp.asarray([20, -20])
     delta_c = 0
     gk = 1.6
     theta = cp.pi/2
-    phi = 0 
-    cav_decay = 16
+    phi = 0
+    cav_decay = 160
     spin_decay = 0
     spin_dephase = 0
+
     test_sys = sys(pop_inclass, delta_a, delta_c, gk, theta, phi, 
                  cav_decay, spin_decay, spin_dephase)
-    results = sys.solve_constant(tlist, F_t)
+    
+    tlist = np.linspace(0,2,int(1e3))
+    F_t = cp.zeros(int(1e3))
+    results = test_sys.solve_constant(tlist)
+
     fig, ax = plt.subplots(3,1, sharex='col')
     ax[0].plot()
     ax[0].set_xlabel("t")
+    ax[0].set_ylabel("ada")
+    ax[1].set_ylabel("sz")
+    ax[2].set_ylabel("spsm")
+
+    ax[0].plot(tlist, results[0])
+    ax[1].plot(tlist, results[1])
+    ax[2].plot(tlist, results[2])
+
+    plt.show()
