@@ -1,6 +1,67 @@
 import cupy as cp
 import numpy as np
+from numpy.random import seed, normal
 import matplotlib.pyplot as plt
+import time
+
+def gauss(x, x_0, sigma):
+    """
+    PDF function of normal distribution
+    x_0, sigma: mean and std of the normal distribution
+    """
+    return 1*np.exp(-((x-x_0) / sigma) ** 2)
+
+def gen_rand_pop(N_spin, k, sigma, min_pop):
+    """
+    Returns randomly generated population distribution following normal given standard deviation
+    Here the maximum detuning is by default 3*sigma
+    By default round up, if after rounding up, the class contains fewer than min_pop spins, discard class
+    """
+    det = np.linspace(0, 3*sigma, k)
+    interval = 3*sigma/k
+    prob = np.asarray([gauss((i+.5)*interval, 0, sigma) for i in range(k)])
+    prob_sum = np.sum(prob)
+    pop = np.ceil(N_spin/prob_sum*prob)
+    keep = np.where(pop>=min_pop)
+    pop = pop[keep]
+    new_k = pop.size
+    return pop, det, new_k
+
+def ind_where(arr, target, tol):
+    """
+    Returns the center index of when the array reaches the target value within a tolerance
+    """
+    pts = np.where(abs(arr) - target <tol)
+    center = np.take(pts, len(pts)//2)
+    return center
+
+
+def unit_time(gk, N_spin, kappa):
+    """
+    Returns the unit time as defined for Dicke superradiance
+    """
+    Omega_0 = 2*gk
+    lim = Omega_0*np.sqrt(N_spin)
+    if kappa < 1.5*lim:
+        print("Warning: not in the overdamped regime")
+    Gc = Omega_0**2/kappa
+    Tr = 1/Gc/N_spin
+    return Tr
+
+def delay_time(gk, N_spin, kappa, theta):
+    """
+    Returns the theoretical delay time for Dicke superradiance
+    qinit: float
+        Initial excitation J-M, in mean field context, N_spin/2 * (1+cos(theta))
+    """
+    Tr = unit_time(gk, N_spin, kappa)
+    qinit = N_spin/2 * (1+np.cos(theta))
+    if N_spin > 1000:
+        Td =  Tr * np.log(N_spin/(qinit+1))
+    else:
+        Td = Tr * (np.sum([1/(1+i) for i in range(N_spin)])-np.log(qinit+1))
+    return Td
+
 
 class sys:
     def __init__(self, pop_inclass, delta_a, delta_c, gk, theta, phi, cav_decay, spin_decay, spin_dephase):
@@ -206,12 +267,15 @@ class sys:
         e_ada = cp.zeros(intervals)
         e_sz = cp.zeros((intervals, self.k))
         e_sp_sm = cp.zeros((intervals, self.k))
-
+        print("Start solving, dt = ", dt)
+        start = time.time()
         for t in range(intervals):
             self.update(F_t[t], dt)
             e_ada[t] = self.ada
             e_sz[t] = self.sz
             e_sp_sm[t] = cp.diagonal(self.sp_sm)
+        end = time.time()
+        print(end-start)
 
         return [cp.asnumpy(e_ada), cp.asnumpy(e_sz), cp.asnumpy(e_sp_sm)]
 
@@ -233,18 +297,22 @@ class sys:
         dt = max(0.25 * 1/max(self.kappa, self.gamma, self.Gamma,
                  0.5 * self.gk * max(self.pop_inclass) * cp.sqrt(max(self.pop_inclass)))
                  , min_dt) # default by fastest oscillation or a set minimum
+        print("Start solving, dt = ", dt)
+        start = time.time()
         while (endtime - time_now > 2 * dt):
             loop_count += 1
             # Adaptive
             dt = 2
             time_now += dt
+        end = time.time()
+        print(end-start)
 
 if __name__ == "__main__":
-    pop_inclass = cp.asarray([100,100])
-    delta_a = cp.asarray([20, -20])
+    pop_inclass = cp.asarray([100])
+    delta_a = cp.asarray([20])
     delta_c = 0
     gk = 1.6
-    theta = cp.pi/2
+    theta = cp.pi
     phi = 0
     cav_decay = 160
     spin_decay = 0
@@ -256,6 +324,9 @@ if __name__ == "__main__":
     tlist = np.linspace(0,2,int(1e3))
     F_t = cp.zeros(int(1e3))
     results = test_sys.solve_constant(tlist)
+    Td_theory = delay_time(gk, 100, cav_decay, theta)
+    Td_simulate = ind_where(results[1], 0.0, 0.001)
+    print(Td_theory, Td_simulate)
 
     fig, ax = plt.subplots(3,1, sharex='col')
     ax[0].plot()
@@ -268,4 +339,4 @@ if __name__ == "__main__":
     ax[1].plot(tlist, results[1])
     ax[2].plot(tlist, results[2])
 
-    plt.show()
+    plt.savefig("Trial.png")
