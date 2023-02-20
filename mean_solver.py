@@ -1,5 +1,6 @@
 import cupy as cp
 import numpy as np
+import matplotlib.pyplot as plt
 
 class sys:
     def __init__(self, pop_inclass, delta_a, delta_c, gk, theta, phi, cav_decay, spin_decay, spin_dephase):
@@ -210,7 +211,7 @@ class sys:
             e_ada[t] = self.ada
             e_sz[t] = self.sz
             e_sp_sm[t] = cp.diagonal(self.sp_sm)
-            
+
         return [cp.numpy(e_ada), cp.numpy(e_sz), cp.numpy(e_sp_sm)]
 
 
@@ -236,3 +237,22 @@ class sys:
             # Adaptive
             dt = 2
             time_now += dt
+
+if __name__ == "__main__":
+    tlist = np.linspace(0,2,1e3)
+    F_t = cp.zeros(1e3)
+    pop_inclass = cp.asarray([10,10,10])
+    delta_a = cp.asarray([0,10,100])
+    delta_c = 0
+    gk = 1.6
+    theta = cp.pi/2
+    phi = 0 
+    cav_decay = 16
+    spin_decay = 0
+    spin_dephase = 0
+    test_sys = sys(pop_inclass, delta_a, delta_c, gk, theta, phi, 
+                 cav_decay, spin_decay, spin_dephase)
+    results = sys.solve_constant(tlist, F_t)
+    fig, ax = plt.subplots(3,1, sharex='col')
+    ax[0].plot()
+    ax[0].set_xlabel("t")
