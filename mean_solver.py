@@ -308,24 +308,24 @@ class sys:
         print(end-start)
 
 if __name__ == "__main__":
-    pop_inclass = cp.asarray([100])
-    delta_a = cp.asarray([20])
+    pop_inclass = cp.asarray([1000,1000])
+    delta_a = cp.asarray([20,0])
     delta_c = 0
     gk = 1.6
     theta = cp.pi
     phi = 0
-    cav_decay = 160
+    cav_decay = 100
     spin_decay = 0
     spin_dephase = 0
 
     test_sys = sys(pop_inclass, delta_a, delta_c, gk, theta, phi, 
                  cav_decay, spin_decay, spin_dephase)
     
-    tlist = np.linspace(0,2,int(1e3))
-    F_t = cp.zeros(int(1e3))
+    tlist = np.linspace(0,2,int(1e4))
+    F_t = cp.zeros(int(1e4))
     results = test_sys.solve_constant(tlist)
     Td_theory = delay_time(gk, 100, cav_decay, theta)
-    Td_simulate = ind_where(results[1], 0.0, 0.001)
+    Td_simulate = ind_where(results[1], 0.0, 0.01)
     print(Td_theory, Td_simulate)
 
     fig, ax = plt.subplots(3,1, sharex='col')
