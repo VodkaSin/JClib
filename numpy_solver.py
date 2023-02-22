@@ -3,6 +3,53 @@ from numpy.random import seed, normal
 import matplotlib.pyplot as plt
 import time
 
+A = [0, 1/4, 3/8, 12/13, 1, 1/2]
+
+B = np.asarray([[],
+     [1/4],
+     [3/32, 9/32],
+     [1932/2197, -7200/2197, 7296/2197],
+     [439/216, -8, 3680/513, -845/4104],
+     [-8/27, 2, -3544/2565, 1859/4104, -11/40]], dtype=object)
+C = [25/216, 0, 1408/2565, 2197/4104, -1/5, 0]
+CH = [16/135, 0, 6656/12825, 28561/56430, -9/50, 2/55]
+CT = [1/360, 0, -128/4275, -2197/75240, 1/50, 2/55]
+
+def RK45(fun, t0, y0, h, iter):
+    """
+    Returns the new stepsize and value
+    Input:
+    fun: function
+    y0: current value
+    """
+    k1 = h * fun(t0 + A[0]*h, y0)
+    k2 = h * fun(t0 + A[1]*h, y0 + B[1]*k1)
+    k3 = h * fun(t0 + A[2]*h, y0 + B[2][0]*k1 + B[2][1]*k2)
+    k4 = h * fun(t0 + A[3]*h, y0 + B[3][0]*k1 + B[3][1]*k2 + B[3][2]*k3)
+    k5 = h * fun(t0 + A[4]*h, y0 + B[4][0]*k1 + B[4][1]*k2 + B[4][2]*k3 +B[4][3]*k4)
+    k6 = h * fun(t0 + A[5]*h, y0 + B[5][0]*k1 + B[5][1]*k2 + B[5][2]*k3 +B[5][3]*k4
+                 + B[5][4]*k5)
+    k = np.asarray([k1,k2,k3,k4,k5,k6])
+    y1 = y0 + sum([CH[i]*k[i] for i in range(6)])
+    TE = np.abs(sum([CT[i]*k[i] for i in range(6)])).max()
+    print(TE)
+    
+    fac = 0.9
+    min_step = 1e-6
+    max_step = 1e-3
+    tol = 1e-5
+
+    h_new = min(max_step, max(min_step, h * fac * (tol/(TE+1e-6))**0.2))
+    if TE > tol:
+        print("Not precise enough")
+        iter += 1
+        if iter>5:
+            return y0, min_step
+        else:
+            return RK45(fun, t0, y0, h_new, iter)
+    else:
+        return y1, h_new
+
 def gauss(x, x_0, sigma):
     """
     PDF function of normal distribution
@@ -154,11 +201,11 @@ class sys:
         return np.real(-2 * self.gk * np.sum(self.pop_inclass * np.imag(self.a_sp))
                  - 2 * self.F * np.imag(self.a) - self.kappa * self.ada)
 
-    def cal_dsz(self):
+    def cal_dsz(self, t, sz):
         """
         Returns a real array (self.k): Average spin inversion in each class
         """
-        return np.real(4 * self.gk * np.imag(self.a_sp) - self.gamma * (1 + self.sz))
+        return np.real(4 * self.gk * np.imag(self.a_sp) - self.gamma * (1 + sz))
     
     def cal_dsm(self):
         return (-1j * self.w_spin * self.sm + 1j * self.a_sz * self.gk)
@@ -239,7 +286,6 @@ class sys:
         self.ada += self.cal_dada() * dt
         self.a2 += self.cal_da2() * dt
 
-        self.sz += self.cal_dsz() * dt
         self.sm += self.cal_dsm() * dt
         self.sp = np.conjugate(self.sm)
 
@@ -279,32 +325,27 @@ class sys:
         return [e_ada, e_sz, e_sp_sm]
 
 
-    def solve_adapt(self, endtime, F, min_dt=1e-6):
+    def solve_adapt(self, endtime, h0):
         """
-        tlist: np.array
-           (0, endtime, default intervals)
-        F: float
-            The cavity pump amplitude
-        min_dt: float
-            The smallest allowed time step
-        mode: str
-            {'constant', 'adapt'} 
+        
         """
-        mode = mode.lower()
-        time_now = 0
-        loop_count = 0
-        dt = max(0.25 * 1/max(self.kappa, self.gamma, self.Gamma,
-                 0.5 * self.gk * max(self.pop_inclass) * np.sqrt(max(self.pop_inclass)))
-                 , min_dt) # default by fastest oscillation or a set minimum
-        print("Start solving, dt = ", dt)
-        start = time.time()
-        while (endtime - time_now > 2 * dt):
-            loop_count += 1
-            # Adaptive
-            dt = 2
-            time_now += dt
-        end = time.time()
-        print(end-start)
+        self.F = 0
+        t = 0
+        h_store = []
+        e_ada = []
+        e_sz = []
+        e_sp_sm = []
+        while t + h0 < endtime:
+            h_store.append(h0)
+            [sz, h0] = RK45(self.cal_dsz, t, self.sz, h0, 1)
+            print("sz", sz)
+            print("stepsize", h0)
+            self.sz = sz
+            self.update(self.F, h0)
+            e_ada.append(self.ada)
+            e_sz.append(self.sz)
+            e_sp_sm.append(np.diagonal(self.sp_sm))
+        return [h_store, e_ada, e_sz, e_sp_sm]
 
 if __name__ == "__main__":
     pop_inclass = np.asarray([1000 for i in range(2)])
@@ -323,7 +364,7 @@ if __name__ == "__main__":
     num_iter = 1e6
     tlist = np.linspace(0,0.2,int(num_iter))
     F_t = np.zeros(int(num_iter))
-    results = test_sys.solve_constant(tlist)
+    results = test_sys.solve_adapt(0.2, 1e-5)
     Td_theory = delay_time(gk, 100, cav_decay, theta)
     Td_simulate = ind_where(results[1], 0.0, 0.5)
     print(Td_theory, Td_simulate)
