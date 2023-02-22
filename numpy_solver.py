@@ -286,6 +286,7 @@ class sys:
         self.ada += self.cal_dada() * dt
         self.a2 += self.cal_da2() * dt
 
+        self.sz += self.cal_sz() * dt
         self.sm += self.cal_dsm() * dt
         self.sp = np.conjugate(self.sm)
 
