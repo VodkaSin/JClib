@@ -201,11 +201,11 @@ class sys:
         return np.real(-2 * self.gk * np.sum(self.pop_inclass * np.imag(self.a_sp))
                  - 2 * self.F * np.imag(self.a) - self.kappa * self.ada)
 
-    def cal_dsz(self, t, sz):
+    def cal_dsz(self):
         """
         Returns a real array (self.k): Average spin inversion in each class
         """
-        return np.real(4 * self.gk * np.imag(self.a_sp) - self.gamma * (1 + sz))
+        return np.real(4 * self.gk * np.imag(self.a_sp) - self.gamma * (1 + self.sz))
     
     def cal_dsm(self):
         return (-1j * self.w_spin * self.sm + 1j * self.a_sz * self.gk)
@@ -286,7 +286,7 @@ class sys:
         self.ada += self.cal_dada() * dt
         self.a2 += self.cal_da2() * dt
 
-        self.sz += self.cal_sz() * dt
+        self.sz += self.cal_dsz() * dt
         self.sm += self.cal_dsm() * dt
         self.sp = np.conjugate(self.sm)
 
@@ -349,8 +349,8 @@ class sys:
         return [h_store, e_ada, e_sz, e_sp_sm]
 
 if __name__ == "__main__":
-    pop_inclass = np.asarray([1000 for i in range(2)])
-    delta_a = np.linspace(0,50,2)
+    pop_inclass = np.asarray([1000 for i in range(200)])
+    delta_a = np.asarray([10 for i in range(200)])
     delta_c = 0
     gk = 1.6
     theta = np.pi
@@ -362,10 +362,10 @@ if __name__ == "__main__":
     test_sys = sys(pop_inclass, delta_a, delta_c, gk, theta, phi, 
                  cav_decay, spin_decay, spin_dephase)
     
-    num_iter = 1e6
+    num_iter = 6e4
     tlist = np.linspace(0,0.2,int(num_iter))
     F_t = np.zeros(int(num_iter))
-    results = test_sys.solve_adapt(0.2, 1e-5)
+    results = test_sys.solve_constant(tlist)
     Td_theory = delay_time(gk, 100, cav_decay, theta)
     Td_simulate = ind_where(results[1], 0.0, 0.5)
     print(Td_theory, Td_simulate)

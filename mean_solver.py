@@ -308,21 +308,21 @@ class sys:
         print(end-start)
 
 if __name__ == "__main__":
-    pop_inclass = cp.asarray([1000,1000,1000,1000])
-    delta_a = cp.asarray([20,0,50,30])
+    pop_inclass = cp.asarray([50000 for i in range(2)])
+    delta_a = cp.asarray([10 for i in range(2)])
     delta_c = 0
     gk = 1.6
     theta = cp.pi
     phi = 0
-    cav_decay = 160
+    cav_decay = 160.0
     spin_decay = 0
     spin_dephase = 0
 
     test_sys = sys(pop_inclass, delta_a, delta_c, gk, theta, phi, 
                  cav_decay, spin_decay, spin_dephase)
     
-    num_iter = 1e4
-    tlist = np.linspace(0,0.2,int(num_iter))
+    num_iter = 6e4
+    tlist = np.linspace(0,2.0,int(num_iter))
     F_t = cp.zeros(int(num_iter))
     results = test_sys.solve_constant(tlist)
     Td_theory = delay_time(gk, 100, cav_decay, theta)
